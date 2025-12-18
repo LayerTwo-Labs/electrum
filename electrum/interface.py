@@ -76,7 +76,7 @@ ca_path = certifi.where()
 BUCKET_NAME_OF_ONION_SERVERS = 'onion'
 
 _KNOWN_NETWORK_PROTOCOLS = {'t', 's'}
-PREFERRED_NETWORK_PROTOCOL = 's'
+PREFERRED_NETWORK_PROTOCOL = 't' # TODO: revert back to 's' once we have TLS working
 assert PREFERRED_NETWORK_PROTOCOL in _KNOWN_NETWORK_PROTOCOLS
 
 MAX_NUM_HEADERS_PER_REQUEST = 2016
@@ -1186,6 +1186,17 @@ class Interface(Logger):
                 break
 
         if not self.blockchain.can_connect(bad_header, check_height=False):
+            # Log why can_connect failed
+            height = bad_header.get('block_height', 'unknown')
+            self.logger.error(f"Cannot connect bad_header at height {height}. Header: {bad_header}")
+            try:
+                prev_hash = self.blockchain.get_hash(height - 1) if isinstance(height, int) else None
+                target = self.blockchain.get_target(height // CHUNK_SIZE - 1) if isinstance(height, int) else None
+                if prev_hash and target:
+                    self.logger.info(f"Attempting to verify header at height {height}")
+                    self.blockchain.verify_header(bad_header, prev_hash, target)
+            except Exception as e:
+                self.logger.error(f"Header verification at height {height} failed: {e}")
             raise Exception('unexpected bad header during binary: {}'.format(bad_header))
         _assert_header_does_not_check_against_any_chain(bad_header)
 

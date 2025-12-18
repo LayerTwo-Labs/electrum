@@ -1,0 +1,122 @@
+name: Build Electrum
+
+on:
+  pull_request:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Create a GitHub release'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  build-linux:
+    name: Build Linux AppImage
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build AppImage
+        run: |
+          cd contrib/build-linux/appimage
+          ./build.sh
+      
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(python3 contrib/print_electrum_version.py)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+      
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-appimage
+          path: dist/*.AppImage
+          if-no-files-found: error
+
+  build-windows:
+    name: Build Windows Executables
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build Windows executables
+        run: |
+          cd contrib/build-wine
+          ./build.sh
+      
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(python3 contrib/print_electrum_version.py)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+      
+      - name: Upload Windows executables
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-executables
+          path: |
+            contrib/build-wine/dist/*-portable.exe
+            contrib/build-wine/dist/electrum-*.exe
+          if-no-files-found: error
+
+  build-macos:
+    name: Build macOS DMG 
+    # need intel runner for now as build script expects x86_64
+    runs-on: macos-15-intel  
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      # Build script expects a specific Python version
+      - name: Pin Python version
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12.10'
+      
+      - name: Install build dependencies
+        run: |
+          brew install autoconf automake libtool gettext coreutils
+      
+      - name: Build macOS app
+        run: |
+          cd contrib/osx
+          ./make_osx.sh
+      
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(python3 contrib/print_electrum_version.py)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+      
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: dist/*.dmg
+          if-no-files-found: error
+
