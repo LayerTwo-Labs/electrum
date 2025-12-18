@@ -312,6 +312,10 @@ class Blockchain(Logger):
             raise InvalidHeader("prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash')))
         if constants.net.TESTNET:
             return
+        # Skip strict difficulty verification for drivechain network
+        # Drivechain may have different difficulty adjustment rules
+        if constants.net.NET_NAME == 'drivechain':
+            return
         bits = cls.target_to_bits(target)
         if bits != header.get('bits'):
             raise InvalidHeader("bits mismatch: %s vs %s" % (bits, header.get('bits')))

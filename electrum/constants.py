@@ -258,6 +258,45 @@ class BitcoinMutinynet(BitcoinTestnet):
     LN_DNS_SEEDS = []
 
 
+class BitcoinDrivechain(AbstractNet):
+    """Custom Bitcoin network called drivechain with magic bytes 0x62, 0x33, 0x30, 0x30"""
+
+    NET_NAME = "drivechain"
+    TESTNET = False
+    WIF_PREFIX = 0x80  # Same as mainnet for now
+    ADDRTYPE_P2PKH = 0
+    ADDRTYPE_P2SH = 5
+    SEGWIT_HRP = "bc"  # Same as mainnet
+    BOLT11_HRP = SEGWIT_HRP
+    GENESIS = "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"  # TODO: Set actual genesis
+    DEFAULT_PORTS = {'t': '50001', 's': '50002'}
+    BLOCK_HEIGHT_FIRST_LIGHTNING_CHANNELS = 0
+
+    XPRV_HEADERS = {
+        'standard':    0x0488ade4,  # xprv
+        'p2wpkh-p2sh': 0x049d7878,  # yprv
+        'p2wsh-p2sh':  0x0295b005,  # Yprv
+        'p2wpkh':      0x04b2430c,  # zprv
+        'p2wsh':       0x02aa7a99,  # Zprv
+    }
+    XPRV_HEADERS_INV = inv_dict(XPRV_HEADERS)
+    XPUB_HEADERS = {
+        'standard':    0x0488b21e,  # xpub
+        'p2wpkh-p2sh': 0x049d7cb2,  # ypub
+        'p2wsh-p2sh':  0x0295b43f,  # Ypub
+        'p2wpkh':      0x04b24746,  # zpub
+        'p2wsh':       0x02aa7ed3,  # Zpub
+    }
+    XPUB_HEADERS_INV = inv_dict(XPUB_HEADERS)
+    BIP44_COIN_TYPE = 0  # Can be changed if you want different derivation
+    LN_REALM_BYTE = 0
+    LN_DNS_SEEDS = []
+
+    @classmethod
+    def datadir_subdir(cls):
+        return cls.NET_NAME
+
+
 NETS_LIST = tuple(all_subclasses(AbstractNet))  # type: Sequence[Type[AbstractNet]]
 NETS_LIST = tuple(sorted(NETS_LIST, key=lambda x: x.NET_NAME))
 
